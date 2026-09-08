@@ -1,0 +1,548 @@
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap");
+@import "tailwindcss";
+
+/* ===============================================================
+   DESIGN TOKENS — single source of truth.
+   Premium dark-navy / electric-blue "storm-fibre / digital-highway"
+   enterprise palette. Everything below is exposed as Tailwind
+   utilities (bg-navy, text-electric, shadow-glow, rounded-*, etc.)
+   so components never hardcode a colour, shadow, or radius.
+================================================================ */
+@theme {
+  /* ---- Core surfaces (aligned to the IGW logo) ---- */
+  --color-navy: #0a1a2f;
+  --color-navy-deep: #06101e;
+  --color-panel: #0f2238;
+  --color-panel2: #112a45;
+  --color-surface: #0c1c30;      /* light-band alt surface for section rhythm */
+
+  /* ---- Brand blues ---- */
+  --color-blue: #0057a8;         /* IGW blue */
+  --color-blue-deep: #073a66;
+  --color-electric: #00aeef;     /* PRIMARY accent — the only strong accent */
+  --color-teal: #00aeef;         /* alias kept for API compatibility */
+  --color-cyan: #41dfff;         /* glow accent only */
+
+  /* ---- Negative/"broken" signal — scoped to before/after contrast (e.g.
+     the IGW Difference problem tiles). NOT a general accent; electric/cyan
+     remain the brand accents. AA on both paper and dark surfaces. ---- */
+  --color-danger: #e2513f;
+
+  /* ---- Neutrals / text ---- */
+  --color-grey: #a6b8ca;         /* WCAG AA on dark panels */
+  --color-grey-dim: #7e91a4;
+  --color-ink: #eef6ff;
+
+  /* ---- Light-theme surface family (airy/editorial "paper" bands) ----
+     Cool off-white so light bands still read as the same cold-fibre brand,
+     never clinical pure white. Text colours below are AA-verified on paper. */
+  --color-paper: #eef3f8;          /* light band bg (cool off-white) */
+  --color-paper-raised: #f7fafc;   /* cards on light bands */
+  --color-paper-sunk: #e4ecf3;     /* inset wells / inputs on light bands */
+  --color-paper-line: rgba(10, 26, 47, 0.1);   /* hairline rules on paper */
+  --color-ink-invert: #0a1a2f;     /* headings on paper (= navy) — 15.7:1 */
+  --color-slate: #46586b;          /* body on paper — AA 6.6:1 */
+  --color-slate-dim: #5c6d7e;      /* meta on paper — AA 4.8:1
+                                      (darkened from spec #6b7c8d, which was 3.85:1) */
+
+  /* ---- Lines / hover tints (hue-matched, token-driven) ---- */
+  --color-line: rgba(90, 150, 210, 0.16);
+  --color-line-soft: rgba(90, 150, 210, 0.09);
+  --color-hover: #5a96d2;        /* base for hover:bg-hover/10 tints */
+
+  /* ---- Glass surfaces (frosted; pair with backdrop-blur) ---- */
+  --color-glass-dark: color-mix(in srgb, var(--color-panel) 55%, transparent);
+  --color-glass-light: color-mix(in srgb, #ffffff 62%, transparent);
+  --color-glass-edge: color-mix(in srgb, var(--color-electric) 22%, transparent);
+
+  /* ---- Aurora gradients (ONLY blue→electric→cyan; no other hues) ---- */
+  --gradient-aurora: linear-gradient(
+    120deg,
+    var(--color-blue-deep) 0%,
+    var(--color-electric) 55%,
+    var(--color-cyan) 100%
+  );
+  --gradient-fiber: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-cyan) 55%, transparent),
+    transparent
+  );
+
+  /* ---- Radius scale (overrides Tailwind defaults so the whole app
+     shifts to the new, rounder language) ---- */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;    /* default card */
+  --radius-xl: 30px;    /* image frames, bento tiles */
+  --radius-2xl: 40px;   /* hero / aurora panels */
+  --radius-pill: 9999px;
+
+  /* ---- Elevation (glow derives from the electric accent, not a stray teal) ---- */
+  --shadow-glow: 0 10px 30px color-mix(in srgb, var(--color-electric) 22%, transparent);
+  --shadow-card: 0 18px 40px rgba(6, 16, 30, 0.45);
+  --shadow-menu: 0 24px 60px rgba(6, 16, 30, 0.55);
+  --shadow-elevate: 0 4px 14px rgba(10, 26, 47, 0.35);
+  --shadow-glass: 0 8px 32px rgba(6, 16, 30, 0.38),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 8%, transparent);   /* frosted cards */
+  --shadow-float: 0 24px 70px rgba(6, 16, 30, 0.5);              /* floating stat pills */
+  --shadow-paper: 0 12px 34px rgba(10, 26, 47, 0.1);            /* cards on light bands */
+
+  /* ---- Motion ---- */
+  --ease-out-soft: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);   /* subtle overshoot for hovers */
+  --dur-fast: 180ms;
+  --dur-base: 320ms;
+  --dur-slow: 600ms;
+
+  /* ---- Type ---- */
+  --font-display: "Sora", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    margin: 0;
+    background-color: var(--color-navy);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: var(--color-electric);
+    color: var(--color-navy-deep);
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+  }
+  /* Tailwind v4 preflight resets buttons to cursor:default; restore the
+     expected pointer on enabled interactive controls (disabled stays default). */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  /* Accessible focus — never removed, always replaced. */
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-electric);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+/* ===============================================================
+   Token-driven decorative utilities. Components reference these
+   class names instead of embedding raw gradient colours.
+================================================================ */
+@layer utilities {
+  /* Fibre-optic radial glow behind the hero. */
+  .fiber-glow {
+    background-image:
+      radial-gradient(
+        1100px 600px at 72% 22%,
+        color-mix(in srgb, var(--color-electric) 12%, transparent),
+        transparent 60%
+      ),
+      radial-gradient(
+        900px 500px at 15% 80%,
+        color-mix(in srgb, var(--color-blue) 30%, transparent),
+        transparent 60%
+      );
+  }
+  /* Softer single glow for interior page headers. */
+  .header-glow {
+    background-image: radial-gradient(
+      800px 400px at 80% 0%,
+      color-mix(in srgb, var(--color-electric) 9%, transparent),
+      transparent 60%
+    );
+  }
+
+  .net-grid-overlay {
+    background-image: linear-gradient(var(--color-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-line) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.35;
+    -webkit-mask-image: radial-gradient(
+      ellipse 80% 60% at 50% 40%,
+      black,
+      transparent 75%
+    );
+    mask-image: radial-gradient(
+      ellipse 80% 60% at 50% 40%,
+      black,
+      transparent 75%
+    );
+  }
+
+  .net-link {
+    stroke-dasharray: 4;
+    animation: net-dash 3s linear infinite;
+  }
+  .net-node {
+    animation: net-glow 3s ease-in-out infinite;
+  }
+  .net-pulse {
+    animation: net-pulse 3s ease-out infinite;
+    transform-origin: center;
+    transform-box: fill-box;
+  }
+  .net-bounce {
+    animation: net-bounce 2s ease-in-out infinite;
+  }
+  /* Continuous fibre "data flow" sweep — futuristic, GPU-friendly. */
+  .fiber-flow {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--color-cyan) 60%, transparent),
+      transparent
+    );
+    background-size: 200% 100%;
+    animation: fiber-flow 3.5s linear infinite;
+  }
+  /* Vertical fibre packet — a bright cyan dot that streams down a thin
+     connector (mobile ConnectivityHub: providers → hub → clients), so the
+     stacked layout reads as live data-flow like the desktop spider legs.
+     Only `top` animates (GPU-cheap); reduced-motion gated below. */
+  .fiber-packet-y {
+    animation: fiber-packet-y 1.8s linear infinite;
+  }
+  /* Fibre text shimmer — a bright cyan highlight travels across electric-toned
+     text, so a run of labels reads as a light pulse passing through the wire.
+     Stagger animation-delay per item for a left→right wave. The gradient base
+     is electric, so the text stays electric-legible even when frozen (reduced
+     motion, gated below). */
+  .fiber-text-shimmer {
+    background-image: linear-gradient(
+      100deg,
+      var(--color-electric) 0%,
+      var(--color-electric) 38%,
+      var(--color-cyan) 50%,
+      var(--color-electric) 62%,
+      var(--color-electric) 100%
+    );
+    background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: fiber-text-shimmer 3s linear infinite;
+  }
+  /* Marquee for the trust logo strip. */
+  .marquee-track {
+    animation: marquee 32s linear infinite;
+  }
+  .marquee-track:hover {
+    animation-play-state: paused;
+  }
+
+  /* Fibre connector lines in the hero ConnectivityHub — a faint static
+     base path with a brighter dash that streams along it, reading as
+     data packets flowing provider → hub → client. GPU-cheap (only
+     stroke-dashoffset animates) and reduced-motion gated below. */
+  .fiber-link-base {
+    stroke: var(--color-electric);
+    opacity: 0.4;
+    filter: drop-shadow(0 0 3px color-mix(in srgb, var(--color-electric) 45%, transparent));
+  }
+  .fiber-link-flow {
+    stroke: var(--color-cyan);
+    stroke-dasharray: 4 10;
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-cyan) 70%, transparent));
+    animation: fiber-packets 1.4s linear infinite;
+  }
+  /* A single packet dot pulsing at a hub/rail endpoint. */
+  .fiber-endpoint {
+    animation: net-glow 2.4s ease-in-out infinite;
+  }
+  /* Shining fibre-light dot at each link end (both card side and hub side) — a
+     CSS-positioned node with a soft cyan halo, so it reads as live light coming
+     out of the storm-fibre wire. Pulses in brightness; reduced-motion gated. */
+  .fiber-node {
+    box-shadow:
+      0 0 4px 1px color-mix(in srgb, var(--color-cyan) 85%, transparent),
+      0 0 9px 2px color-mix(in srgb, var(--color-cyan) 45%, transparent);
+    animation: net-glow 2.4s ease-in-out infinite;
+  }
+  /* Expanding halo ring around the hub — signals it as the live centre. */
+  .hub-ring {
+    animation: hub-ring 3.4s ease-out infinite;
+    transform-origin: center;
+  }
+  .hub-ring-2 {
+    animation-delay: 1.7s;
+  }
+
+  /* Storm-fibre backdrop mesh (hero NetworkBackdrop). A faint static
+     strand carries a brighter cyan packet-dash that streams across it;
+     non-scaling strokes keep both crisp under preserveAspectRatio="none".
+     The whole mesh drifts slowly (.storm-drift) so the fabric feels alive
+     rather than a fixed diagram. All three are reduced-motion gated. */
+  .storm-link-base {
+    stroke: var(--color-electric);
+    opacity: 0.22;
+  }
+  .storm-link-flow {
+    stroke: var(--color-cyan);
+    stroke-dasharray: 3 14;
+    opacity: 0.9;
+    filter: drop-shadow(0 0 3px color-mix(in srgb, var(--color-cyan) 65%, transparent));
+    animation: storm-packets 3s linear infinite;
+  }
+  .storm-node {
+    animation: net-glow 3s ease-in-out infinite;
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-cyan) 60%, transparent));
+  }
+  .storm-drift {
+    animation: storm-drift 26s ease-in-out infinite;
+  }
+  /* Isometric dot-matrix wave at the bottom of the hero (StormWave). Each dot
+     rests at its own --o opacity — the crest shimmer is baked into the geometry
+     (brighter, larger dots on the ridges), so the "sea of light" storm-fibre
+     surface reads as a STATIC 3D swell, not a travelling sweep. */
+  .storm-wave-dot {
+    opacity: var(--o);
+  }
+  /* One cheap glow pass on the whole dot field instead of a per-dot filter
+     (a per-circle drop-shadow over thousands of nodes destroys scroll perf). */
+  .storm-wave-svg {
+    filter: drop-shadow(0 0 2px color-mix(in srgb, var(--color-cyan) 40%, transparent));
+    contain: paint;
+  }
+
+  /* Routed IPv4 address cell — a soft cyan glow marking a block that's live on
+     the routing table. Static (no animation) → no reduced-motion entry needed. */
+  .ipv4-cell-routed {
+    box-shadow:
+      0 0 8px color-mix(in srgb, var(--color-cyan) 45%, transparent),
+      inset 0 0 6px color-mix(in srgb, var(--color-cyan) 22%, transparent);
+  }
+
+  /* Aurora seam — a soft 1–2px gradient rule between a dark and a light
+     band, so section transitions glow instead of hard-cutting (§6, §3.5).
+     Static gradient, no animation → no reduced-motion entry needed. */
+  .aurora-seam {
+    height: 2px;
+    background: var(--gradient-aurora);
+    -webkit-mask-image: linear-gradient(90deg, transparent, black 30%, black 70%, transparent);
+    mask-image: linear-gradient(90deg, transparent, black 30%, black 70%, transparent);
+    opacity: 0.55;
+  }
+
+  /* Notched-outline field (IPv4Form FloatingField). An overlaid <fieldset>
+     draws the field outline; its <legend> cuts a real gap in the TOP border for
+     the floating label. Browser fieldsets reserve vertical space for the legend
+     (pushing the border box down) and add default padding/min-width — these
+     resets collapse all that so the outline sits flush to the input's real
+     height. The legend's WIDTH (0 → auto) is what opens/closes the notch, so
+     only its max-width animates; visibility:hidden keeps the gap without
+     painting any background over the panel. */
+  .field-fieldset {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 0 8px;
+    min-inline-size: 0;
+    border-radius: var(--radius-sm);
+    border-width: 1px;
+    border-style: solid;
+    pointer-events: none;
+  }
+  .field-legend {
+    display: block;
+    width: auto;
+    height: 0;                /* no vertical footprint → border stays aligned */
+    padding: 0;
+    font-size: 11px;
+    line-height: 0;
+    white-space: nowrap;
+    visibility: hidden;       /* hides text, keeps the notch */
+    max-width: 0.01px;        /* collapsed: unbroken border */
+    overflow: hidden;
+    transition: max-width 200ms var(--ease-out-soft);
+  }
+  .field-legend > span {
+    display: inline-block;
+    padding: 0 6px;
+    opacity: 0;               /* the visible caption is the sibling <label> */
+  }
+  .group:focus-within .field-legend,
+  .group:has(.peer:not(:placeholder-shown)) .field-legend {
+    max-width: 100%;          /* open the notch when focused or filled */
+  }
+}
+
+/* Browser autofill paints its own light background + dark text over inputs,
+   which breaks the deep-navy field surface. There is no way to override the
+   autofill background directly, so we mask it: an inset box-shadow the size of
+   the field repaints it navy, and the text fill-colour is forced back to ink.
+   The long transition delay defeats the brief yellow autofill flash. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-ink);
+  caret-color: var(--color-ink);
+  -webkit-box-shadow: 0 0 0 1000px var(--color-navy-deep) inset;
+  box-shadow: 0 0 0 1000px var(--color-navy-deep) inset;
+  transition: background-color 6000s ease-in-out 0s;
+}
+
+@keyframes net-dash {
+  to {
+    stroke-dashoffset: -8;
+  }
+}
+@keyframes net-glow {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes net-pulse {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+}
+@keyframes net-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(7px);
+  }
+}
+@keyframes fiber-flow {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+@keyframes fiber-packet-y {
+  0% {
+    top: 0;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+@keyframes fiber-text-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+@keyframes fiber-packets {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+@keyframes hub-ring {
+  0% {
+    transform: scale(0.72);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+@keyframes storm-packets {
+  to {
+    stroke-dashoffset: -34;
+  }
+}
+@keyframes storm-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-1.5%, 1%, 0) scale(1.03);
+  }
+}
+/* ===============================================================
+   Respect user motion preferences.
+================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .net-link,
+  .net-node,
+  .net-pulse,
+  .net-bounce,
+  .fiber-flow,
+  .fiber-packet-y,
+  .fiber-text-shimmer,
+  .fiber-link-flow,
+  .fiber-endpoint,
+  .fiber-node,
+  .hub-ring,
+  .storm-link-flow,
+  .storm-node,
+  .storm-drift,
+  .marquee-track {
+    animation: none !important;
+  }
+  /* Frozen storm packets still read as connections — show the dash solid. */
+  .storm-link-flow {
+    stroke-dasharray: none;
+    opacity: 0.5;
+  }
+  /* Frozen halo rings shouldn't linger scaled-up/invisible. */
+  .hub-ring {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  /* Frozen fibre packets still read as connections — show the dash solid. */
+  .fiber-link-flow {
+    stroke-dasharray: none;
+    opacity: 0.5;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
